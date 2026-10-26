@@ -11,12 +11,14 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Unzip Project
+      - name: Extract Project
         run: |
-          unzip -o vision_app.zip.zip
-          if [ -d "vision_app" ]; then
-            cp -r vision_app/* .
-          fi
+          mkdir -p project_extracted
+          unzip -q vision_app.zip.zip -d project_extracted
+          SOURCE_DIR=$(find project_extracted -name "pubspec.yaml" -exec dirname {} \;)
+          cp -rn "$SOURCE_DIR"/* .
+          rm -rf project_extracted
+          ls -la
 
       - name: Setup Java
         uses: actions/setup-java@v4
