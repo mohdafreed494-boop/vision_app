@@ -38,20 +38,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-
-      - name: Inject Flutter Gradle Plugin & Fix Settings
-        run: |
-          FLUTTER_GRADLE_DIR="$FLUTTER_ROOT/packages/flutter_tools/gradle"
-          # Ensure root build.gradle or settings.gradle knows where flutter tools live
-          if [ -f "android/settings.gradle" ]; then
-            if ! grep -q "flutter.sdk" android/settings.gradle; then
-              echo "includeBuild '$FLUTTER_GRADLE_DIR'" >> android/settings.gradle
-            fi
-          fi
-          if [ -f "android/build.gradle" ]; then
-            sed -i "s|id \"dev.flutter.flutter-gradle-plugin\".*|id \"dev.flutter.flutter-gradle-plugin\" apply false|g" android/build.gradle
-          fi
+          flutter-version: '3.27.4'
 
       - name: Get Dependencies
         run: flutter pub get
