@@ -29,7 +29,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
           channel: 'stable'
 
       - name: Get Dependencies
@@ -43,3 +42,4 @@ jobs:
         with:
           name: vision_app_debug_apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+          
