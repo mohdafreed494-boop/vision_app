@@ -18,16 +18,6 @@ jobs:
           SOURCE_DIR=$(find project_extracted -name "pubspec.yaml" -exec dirname {} \;)
           cp -rn "$SOURCE_DIR"/* .
           rm -rf project_extracted
-          ls -la
-
-      - name: Clean Proxy and Fix Repos
-        run: |
-          if [ -f "android/gradle.properties" ]; then
-            sed -i '/systemProp.http.proxy/d' android/gradle.properties
-            sed -i '/systemProp.https.proxy/d' android/gradle.properties
-          fi
-          find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo.maven.apache.org|https://repo.maven.apache.org|g' {} +
-          find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo1.maven.org|https://repo1.maven.org|g' {} +
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -40,11 +30,48 @@ jobs:
         with:
           flutter-version: '3.27.4'
 
+      - name: Prepare Android Project
+        run: |
+          # Proxy hatana
+          if [ -f "android/gradle.properties" ]; then
+            sed -i '/systemProp.http.proxy/d' android/gradle.properties
+            sed -i '/systemProp.https.proxy/d' android/gradle.properties
+          fi
+
+          # Insecure maven repos ko https karna
+          find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo.maven.apache.org|https://repo.maven.apache.org|g' {} +
+          find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo1.maven.org|https://repo1.maven.org|g' {} +
+
+          # Flutter Gradle Plugin resolution settings.gradle me inject karna
+          if [ -f "android/settings.gradle" ]; then
+            cat << 'EOF' > android/settings.gradle.tmp
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  file("local.properties").withInputStream { properties.load(it) }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null : "flutter.sdk not set in local.properties"
+                  return flutterSdkPath
+              }()
+
+              includeBuild "$flutterSdkPath/packages/flutter_tools/gradle"
+
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          EOF
+            cat android/settings.gradle >> android/settings.gradle.tmp
+            mv android/settings.gradle.tmp android/settings.gradle
+          fi
+
       - name: Get Dependencies
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --debug --no-tree-shake-icons
+        run: flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
