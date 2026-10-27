@@ -20,13 +20,12 @@ jobs:
           rm -rf project_extracted
           ls -la
 
-      - name: Clean Proxy and Fix HTTP Repos
+      - name: Clean Proxy and Fix Repos
         run: |
           if [ -f "android/gradle.properties" ]; then
             sed -i '/systemProp.http.proxy/d' android/gradle.properties
             sed -i '/systemProp.https.proxy/d' android/gradle.properties
           fi
-          # Fix insecure http Maven URLs to https across all gradle files
           find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo.maven.apache.org|https://repo.maven.apache.org|g' {} +
           find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo1.maven.org|https://repo1.maven.org|g' {} +
 
@@ -39,7 +38,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.27.4'
 
       - name: Get Dependencies
         run: flutter pub get
