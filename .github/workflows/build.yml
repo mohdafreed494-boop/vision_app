@@ -30,22 +30,47 @@ jobs:
         with:
           flutter-version: '3.27.4'
 
-      - name: Clean Proxy and Fix Repos
+      - name: Clean Proxy and Fix Configs
         run: |
+          # 1. Proxy hatana
           if [ -f "android/gradle.properties" ]; then
             sed -i '/systemProp.http.proxy/d' android/gradle.properties
             sed -i '/systemProp.https.proxy/d' android/gradle.properties
           fi
+
+          # 2. Insecure maven repo ko https karna
           find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo.maven.apache.org|https://repo.maven.apache.org|g' {} +
           find android -type f \( -name "*.gradle" -o -name "*.properties" \) -exec sed -i 's|http://repo1.maven.org|https://repo1.maven.org|g' {} +
 
-      - name: Fix Semicolon In Main Dart
-        run: |
+          # 3. Flutter Gradle Plugin resolve karne ke liye settings.gradle theek karna
+          if [ -f "android/settings.gradle" ]; then
+            cat << 'EOF' > android/settings.gradle.tmp
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  file("local.properties").withInputStream { properties.load(it) }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null : "flutter.sdk not set in local.properties"
+                  return flutterSdkPath
+              }()
+
+              includeBuild "$flutterSdkPath/packages/flutter_tools/gradle"
+
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          EOF
+            cat android/settings.gradle >> android/settings.gradle.tmp
+            mv android/settings.gradle.tmp android/settings.gradle
+          fi
+
+          # 4. Dart code me semicolon fix karna
           if [ -f "lib/main.dart" ]; then
-            # Line 2128 ke aage semicolon jodne ke liye
             sed -i '2128s/[[:space:]]*$/;/' lib/main.dart
             sed -i '2128s/;;/;/' lib/main.dart
-            sed -n '2125,2132p' lib/main.dart
           fi
 
       - name: Get Dependencies
